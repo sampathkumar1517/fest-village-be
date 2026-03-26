@@ -8,27 +8,23 @@ export class FestivalController {
   constructor(private readonly festivalService: FestivalService) {}
 
   @Post( 'create-festival')
-  create(@Body() createFestivalDto: CreateFestivalDto) {
-    return this.festivalService.create(createFestivalDto);
+  AddFestival(@Body() createFestivalDto: CreateFestivalDto) {
+    return this.festivalService.AddFestival(createFestivalDto);
   }
 
-  @Get( 'get-all-festivals')
-  findAll() {
-    return this.festivalService.findAll();
+  @Post('get-all-festivals')
+  GetAllFestivals() {
+    return this.festivalService.GetAllFestivals();
   }
 
-  @Get('get-festival-by-id/:id')
-  findOne(@Param('id') id: string) {
-    return this.festivalService.findOne(+id);
+  @Post('get-festival-by-id/:id')
+  GetFestivalById(@Param('id') id: string) {
+      return this.festivalService.GetFestivalById(+id);
   }
 
-  @Patch('update-festival/:id')
-  update(@Param('id') id: string, @Body() updateFestivalDto: UpdateFestivalDto) {
-    return this.festivalService.update(+id, updateFestivalDto);
+    @Patch('update-festival/:id')
+  UpdateFestival(@Param('id') id: string, @Body() updateFestivalDto: UpdateFestivalDto) {
+    return this.festivalService.UpdateFestival(+id, updateFestivalDto);
   }
 
-  @Delete('delete-festival/:id')
-  remove(@Param('id') id: string) {
-    return this.festivalService.remove(+id);
-  }
 }

@@ -7,7 +7,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreatePaymentDetailDto } from './dto/create-payment-detail.dto';
 import { UpdatePaymentDetailDto } from './dto/update-payment-detail.dto';
-import { PaymentDetail } from './entities/payment-detail.entity';
+import {
+  PaymentDetail,
+  PaymentStatus,
+  PaymentMethod,
+} from './entities/payment-detail.entity';
 import { User } from '../users/entities/user.entity';
 import { Festival } from '../festival/entities/festival.entity';
 
@@ -22,7 +26,7 @@ export class PaymentDetailService {
     private festivalRepository: Repository<Festival>,
   ) {}
 
-  async create(createPaymentDetailDto: CreatePaymentDetailDto) {
+  async AddPayment(createPaymentDetailDto: CreatePaymentDetailDto) {
     // Validate user exists
     const user = await this.userRepository.findOne({
       where: { id: createPaymentDetailDto.userId },
@@ -45,37 +49,18 @@ export class PaymentDetailService {
       );
     }
 
-    // Validate amount matches festival amount
-    if (createPaymentDetailDto.amount !== festival.amountPerFamily) {
-      throw new BadRequestException(
-        `Payment amount must match festival amount per family: ${festival.amountPerFamily}`,
-      );
-    }
 
-    // If collectedByUserId is provided, validate collector exists
-    if (createPaymentDetailDto.collectedByUserId) {
-      const collector = await this.userRepository.findOne({
-        where: { id: createPaymentDetailDto.collectedByUserId },
-      });
 
-      if (!collector) {
-        throw new NotFoundException(
-          `Collector with ID ${createPaymentDetailDto.collectedByUserId} not found`,
-        );
-      }
-    }
-
-    // Generate receipt number if not provided
-    const receiptNumber =
-      createPaymentDetailDto.receiptNumber ||
-      `REC-${Date.now()}-${createPaymentDetailDto.userId}`;
+    // If collectedByUserId is provided, validate collector exist
 
     const paymentDetail = this.paymentDetailRepository.create({
-      ...createPaymentDetailDto,
+      userId: createPaymentDetailDto.userId,
+      festivalId: createPaymentDetailDto.festivalId,
+      paidAmount: createPaymentDetailDto.paidAmount,
       paymentDate: new Date(createPaymentDetailDto.paymentDate),
-      receiptNumber,
-      paymentStatus: createPaymentDetailDto.paymentStatus || 'pending',
-      paymentMethod: createPaymentDetailDto.paymentMethod || 'cash',
+      paymentStatus:
+        createPaymentDetailDto.paymentStatus || PaymentStatus.PENDING,
+      paymentMethod: createPaymentDetailDto.paymentMethod || PaymentMethod.CASH,
     });
 
     await this.paymentDetailRepository.save(paymentDetail);
@@ -87,8 +72,9 @@ export class PaymentDetailService {
     };
   }
 
-  async findAll() {
+  async findAll(festivalId : number) {
     return this.paymentDetailRepository.find({
+      where: { festivalId },
       relations: ['user', 'festival'],
     });
   }
@@ -150,11 +136,11 @@ export class PaymentDetailService {
 
       // Validate amount if festival is changed
       if (
-        updatePaymentDetailDto.amount &&
-        updatePaymentDetailDto.amount !== festival.amountPerFamily
+        updatePaymentDetailDto.paidAmount &&
+        updatePaymentDetailDto.paidAmount !== paymentDetail.paidAmount
       ) {
         throw new BadRequestException(
-          `Payment amount must match festival amount per family: ${festival.amountPerFamily}`,
+          `Payment amount must match festival amount per family: ${paymentDetail.paidAmount}`,
         );
       }
     }

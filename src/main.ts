@@ -8,7 +8,9 @@ async function bootstrap() {
   });
 
   // Enable CORS
-  app.enableCors();
+  app.enableCors({
+    origin: '*',
+  });
 
   // Enable validation pipes
   app.useGlobalPipes(

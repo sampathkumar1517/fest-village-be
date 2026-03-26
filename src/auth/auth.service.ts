@@ -15,8 +15,8 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
+  async validateUser(phoneNumber: string, password: string): Promise<any> {
+    const user = await this.usersService.GetUserByPhoneNumber(phoneNumber);
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -31,14 +31,14 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
+    const user = await this.validateUser(loginDto.phoneNumber, loginDto.password);
 
     if (!user.isActive) {
       throw new UnauthorizedException('User account is inactive');
     }
 
     const payload = {
-      email: user.email,
+      phoneNumber: user.phoneNumber,
       sub: user.id,
       role: user.role,
     };
@@ -48,11 +48,10 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
-        email: user.email,
+        phoneNumber: user.phoneNumber,
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
-        phoneNumber: user.phoneNumber,
       },
     };
   }

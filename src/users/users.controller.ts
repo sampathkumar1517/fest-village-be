@@ -16,33 +16,33 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  @Post('create-user')
+  createUser(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.CreateUser(createUserDto);
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  GetAllUsers() {
+          return this.usersService.GetAllUsers();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  GetUserById(@Param('id') id: string) {
+    return this.usersService.GetUserById(+id);
   }
 
-  @Get('email/:email')
-  findByEmail(@Param('email') email: string) {
-    return this.usersService.findByEmail(email);
+  @Get('phone-number/:phoneNumber')
+  GetUserByPhoneNumber(@Param('phoneNumber') phoneNumber: string) {
+    return this.usersService.GetUserByPhoneNumber(phoneNumber);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  UpdateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.UpdateUser(+id, updateUserDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  DeleteUser(@Param('id') id: string) {
+      return this.usersService.DeleteUser(+id);
   }
 }

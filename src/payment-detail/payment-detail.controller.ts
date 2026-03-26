@@ -18,51 +18,43 @@ export class PaymentDetailController {
     private readonly paymentDetailService: PaymentDetailService,
   ) {}
 
-  @Post()
-  create(@Body() createPaymentDetailDto: CreatePaymentDetailDto) {
-    return this.paymentDetailService.create(createPaymentDetailDto);
+  @Post('add-payment')
+  AddPayment(@Body() createPaymentDetailDto: CreatePaymentDetailDto) {
+    return this.paymentDetailService.AddPayment(createPaymentDetailDto);
   }
 
-  @Get()
-  findAll(@Query('festivalId') festivalId?: string) {
-    if (festivalId) {
-      return this.paymentDetailService.findByFestivalId(+festivalId);
-    }
-    return this.paymentDetailService.findAll();
+  @Post('get-all-payments')
+  findAll(@Body() body: { festivalId: number }) {
+    return this.paymentDetailService.findAll(body.festivalId);
+  } 
+
+  @Post('get-payment-statistics')
+  getStatistics(@Body() body: { festivalId: number }) {
+    return this.paymentDetailService.getPaymentStatistics(body.festivalId);
   }
 
-  @Get('statistics')
-  getStatistics(@Query('festivalId') festivalId?: string) {
-    return this.paymentDetailService.getPaymentStatistics(
-      festivalId ? +festivalId : undefined,
-    );
+  @Post('get-payments-by-user')
+  findByUserId(@Body() body: { userId: number }) {
+    return this.paymentDetailService.findByUserId(body.userId);
   }
 
-  @Get('user/:userId')
-  findByUserId(@Param('userId') userId: string) {
-    return this.paymentDetailService.findByUserId(+userId);
+  @Post('get-payments-by-festival')
+  findByFestivalId(@Body() body: { festivalId: number }) {
+    return this.paymentDetailService.findByFestivalId(body.festivalId);
   }
 
-  @Get('festival/:festivalId')
-  findByFestivalId(@Param('festivalId') festivalId: string) {
-    return this.paymentDetailService.findByFestivalId(+festivalId);
+  @Post('get-payment-by-id')
+  findOne(@Body() body: { id: number }) {
+    return this.paymentDetailService.findOne(body.id);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.paymentDetailService.findOne(+id);
+  @Patch('update-payment')
+  update(@Body() body: { id: number, updatePaymentDetailDto: UpdatePaymentDetailDto }) {
+    return this.paymentDetailService.update(body.id, body.updatePaymentDetailDto);
   }
 
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updatePaymentDetailDto: UpdatePaymentDetailDto,
-  ) {
-    return this.paymentDetailService.update(+id, updatePaymentDetailDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.paymentDetailService.remove(+id);
+  @Delete('delete-payment')
+  remove(@Body() body: { id: number }) {
+    return this.paymentDetailService.remove(body.id);
   }
 }

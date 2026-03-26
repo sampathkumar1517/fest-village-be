@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Event } from './entities/event.entity';
+import { Event, EventStatus } from './entities/event.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Festival } from '../festival/entities/festival.entity';
@@ -28,10 +28,13 @@ export class EventsService {
     }
 
     const event = this.eventRepository.create({
-      ...createEventDto,
+      festivalId: createEventDto.festivalId,
+      name: createEventDto.name,
+      description: createEventDto.description,
       startDate: new Date(createEventDto.startDate),
       endDate: new Date(createEventDto.endDate),
-      status: createEventDto.status || 'planned',
+      location: createEventDto.location,
+      status: createEventDto.status || EventStatus.PLANNED,
       capacity: createEventDto.capacity || 0,
       registeredCount: 0,
     });

@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -13,22 +12,26 @@ export class UsersService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async CreateUser(createUserDto: CreateUserDto) {
     // Check if user with email already exists
     const existingUser = await this.userRepository.findOne({
-      where: { email: createUserDto.email },
+      where: { phoneNumber: createUserDto.phoneNumber },
     });
 
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      throw new ConflictException('User with this phone number already exists');
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const nameParts = createUserDto.firstName.trim().split(/\s+/);
+    const derivedLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'NA';
 
     const user = this.userRepository.create({
       ...createUserDto,
-      password: hashedPassword,
+      // Keep required entity fields non-null even when DTO keeps them optional.
+      lastName: derivedLastName,
+      address: createUserDto.address ?? 'NA',
+      houseNumber: createUserDto.houseNumber ?? 'NA',
+      password: 'NA',
     });
 
     await this.userRepository.save(user);
@@ -38,18 +41,18 @@ export class UsersService {
     return {
       success: true,
       message: 'User created successfully',
-      data: result,
+      
     };
   }
 
-  async findAll() {
+  async GetAllUsers() {
     const users = await this.userRepository.find({
       relations: ['paymentDetails'],
     });
     return users.map(({ password, ...user }) => user);
   }
 
-  async findOne(id: number) {
+  async GetUserById(id: number) {
     const user = await this.userRepository.findOne({
       where: { id },
       relations: ['paymentDetails'],
@@ -63,28 +66,28 @@ export class UsersService {
     return result;
   }
 
-  async findByEmail(email: string) {
+  async GetUserByPhoneNumber(phoneNumber: string) {
     return this.userRepository.findOne({
-      where: { email },
+      where: { phoneNumber },
     });
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
-    const user = await this.findOne(id);
+  async UpdateUser(id: number, updateUserDto: UpdateUserDto) {
+    const user = await this.GetUserById(id);
 
     // If password is being updated, hash it
-    if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
-    }
+    // if (updateUserDto.password) {
+    //   updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    // }
 
     // Check if email is being updated and if it already exists
-    if (updateUserDto.email && updateUserDto.email !== user.email) {
+    if (updateUserDto.phoneNumber && updateUserDto.phoneNumber !== user.phoneNumber) {
       const existingUser = await this.userRepository.findOne({
-        where: { email: updateUserDto.email },
+        where: { phoneNumber: updateUserDto.phoneNumber },
       });
 
       if (existingUser) {
-        throw new ConflictException('User with this email already exists');
+        throw new ConflictException('User with this phone number already exists');
       }
     }
 
@@ -99,8 +102,7 @@ export class UsersService {
     };
   }
 
-  async remove(id: number) {
-    const user = await this.findOne(id);
+  async DeleteUser(id: number) {
     await this.userRepository.softDelete(id);
     return {
       success: true,

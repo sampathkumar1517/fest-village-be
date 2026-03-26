@@ -45,15 +45,12 @@ export class PaymentDetail {
   festivalId: number;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  amount: number;
+  paidAmount: number;
 
   // Who collected the amount (collector / incharge)
-  @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: 'collectedByUserId' })
-  collectedByUser: User;
 
   @Column({ nullable: true })
-  collectedByUserId: number;
+  CollectedBy: string;
 
   @Column({
     type: 'enum',
@@ -69,17 +66,11 @@ export class PaymentDetail {
   })
   paymentMethod: PaymentMethod;
 
-  @Column({ nullable: true })
-  transactionId: string;
 
-  @Column({ nullable: true })
-  remarks: string;
 
   @Column()
   paymentDate: Date;
 
-  @Column({ nullable: true })
-  receiptNumber: string;
 
   @CreateDateColumn()
   createdAt: Date;

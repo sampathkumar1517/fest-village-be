@@ -34,14 +34,14 @@ export class AnalyticsService {
 
     const collectedRaw = await this.paymentRepo
       .createQueryBuilder('payment')
-      .select('SUM(payment.amount)', 'total')
+      .select('SUM(payment.paidAmount)', 'total')
       .where('payment.festivalId = :festivalId', { festivalId })
       .andWhere('payment.paymentStatus = :status', { status: 'completed' })
       .getRawOne();
 
     const expensesRaw = await this.expenseRepo
       .createQueryBuilder('expense')
-      .select('SUM(expense.amount)', 'total')
+      .select('SUM(expense.paidAmount)', 'total')
       .where('expense.festivalId = :festivalId', { festivalId })
       .getRawOne();
 
@@ -98,7 +98,7 @@ export class AnalyticsService {
         phoneNumber: p.user.phoneNumber,
         totalPaid: 0,
       };
-      existing.totalPaid += Number(p.amount);
+      existing.totalPaid += Number(p.paidAmount);
       byFamily.set(key, existing);
     }
 
@@ -124,7 +124,7 @@ export class AnalyticsService {
     // Total collected
     const collectedRaw = await this.paymentRepo
       .createQueryBuilder('payment')
-      .select('SUM(payment.amount)', 'total')
+      .select('SUM(payment.paidAmount)', 'total')
       .where('payment.festivalId = :festivalId', { festivalId })
       .andWhere('payment.paymentStatus = :status', { status: 'completed' })
       .getRawOne();
@@ -134,7 +134,7 @@ export class AnalyticsService {
     // Total expenses
     const expensesRaw = await this.expenseRepo
       .createQueryBuilder('expense')
-      .select('SUM(expense.amount)', 'total')
+      .select('SUM(expense.paidAmount)', 'total')
       .where('expense.festivalId = :festivalId', { festivalId })
       .getRawOne();
 
@@ -146,7 +146,7 @@ export class AnalyticsService {
       .createQueryBuilder('expense')
       .leftJoinAndSelect('expense.category', 'category')
       .select('category.name', 'categoryName')
-      .addSelect('SUM(expense.amount)', 'total')
+      .addSelect('SUM(expense.paidAmount)', 'total')
       .where('expense.festivalId = :festivalId', { festivalId })
       .groupBy('category.id')
       .addGroupBy('category.name')
@@ -157,7 +157,7 @@ export class AnalyticsService {
       .createQueryBuilder('payment')
       .select('payment.paymentMethod', 'method')
       .addSelect('COUNT(payment.id)', 'count')
-      .addSelect('SUM(payment.amount)', 'total')
+      .addSelect('SUM(payment.paidAmount)', 'total')
       .where('payment.festivalId = :festivalId', { festivalId })
       .andWhere('payment.paymentStatus = :status', { status: 'completed' })
       .groupBy('payment.paymentMethod')
@@ -168,7 +168,7 @@ export class AnalyticsService {
       .createQueryBuilder('payment')
       .select('payment.paymentStatus', 'status')
       .addSelect('COUNT(payment.id)', 'count')
-      .addSelect('SUM(payment.amount)', 'total')
+      .addSelect('SUM(payment.paidAmount)', 'total')
       .where('payment.festivalId = :festivalId', { festivalId })
       .groupBy('payment.paymentStatus')
       .getRawMany();

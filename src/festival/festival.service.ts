@@ -10,9 +10,9 @@ export class FestivalService {
   constructor(
     @InjectRepository(Festival)
     private festivalRepository: Repository<Festival>,
-  ) {}
+  ) { }
 
-  async create(createFestivalDto: CreateFestivalDto) {
+  async AddFestival(createFestivalDto: CreateFestivalDto) {
     const festival = this.festivalRepository.create({
       ...createFestivalDto,
       collectionStartDate: new Date(createFestivalDto.collectionStartDate),
@@ -27,32 +27,69 @@ export class FestivalService {
     };
   }
 
-  findAll() {
-    return this.festivalRepository.find();
+  async GetAllFestivals() {
+    const festivals = await this.festivalRepository.find();
+    const result = festivals.map(festival =>{
+      return {
+        id: festival.id,
+        festivalName: festival.festivalName,
+        amountPerFamily: festival.amountPerFamily,
+        collectionStartDate: festival.collectionStartDate,
+        festivalEndDate: festival.festivalEndDate,  
+        isActive: festival.isActive,
+        organizerName: festival.organizerName,
+        InchargeName: festival.InchargeName,
+      }
+    })
+    return {
+      success: true,
+      message: 'Festival fetched successfully',
+      listData:[{ data: result }],
+      total: result.length,
+      page: 1,
+      limit: 10,
+      totalPages: Math.ceil(result.length / 10),
+    };
   }
 
-  async findOne(id: number) {
+  async GetFestivalById(id: number) {
     const festival = await this.festivalRepository.findOne({ where: { id } });
     if (!festival) {
       throw new NotFoundException(`Festival with ID ${id} not found`);
     }
-    return festival;
-  }
-
-  async update(id: number, updateFestivalDto: UpdateFestivalDto) {
-    await this.festivalRepository.update(id, updateFestivalDto);
+    const result = {
+      id: festival.id,
+      festivalName: festival.festivalName,
+      amountPerFamily: festival.amountPerFamily,
+      collectionStartDate: festival.collectionStartDate,
+      festivalEndDate: festival.festivalEndDate,  
+      isActive: festival.isActive,
+      organizerName: festival.organizerName,
+      InchargeName: festival.InchargeName,
+    }
     return {
       success: true,
-      message: 'Festival updated successfully',
-    };
+      message: 'Festival fetched successfully',
+      listData: [{ data: result }]
   }
+}
 
-  async remove(id: number) {
-    await this.findOne(id);
-    await this.festivalRepository.softDelete(id);
-    return {
-      success: true,
-      message: 'Festival deleted successfully',
-    };
+ async UpdateFestival(id: number, updateFestivalDto: UpdateFestivalDto) {
+  const festival = await this.festivalRepository.findOne({ where: { id } });
+  if (!festival) {
+    throw new NotFoundException(`Festival with ID ${id} not found`);
   }
+  const updateData = { ...updateFestivalDto };
+  if (updateFestivalDto.collectionStartDate) {
+    updateData.collectionStartDate = new Date(updateFestivalDto.collectionStartDate).toISOString();
+  }
+  if (updateFestivalDto.festivalEndDate) {
+    updateData.festivalEndDate = new Date(updateFestivalDto.festivalEndDate).toISOString();
+  }
+  await this.festivalRepository.update(id, updateData);
+  return {
+    success: true,
+    message: 'Festival updated successfully',
+  }
+}
 }

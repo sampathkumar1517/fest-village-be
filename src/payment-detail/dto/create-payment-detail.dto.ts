@@ -21,7 +21,7 @@ export class CreatePaymentDetailDto {
   @IsNumber()
   @IsNotEmpty()
   @Min(0)
-  amount: number;
+  paidAmount: number;
 
   @IsEnum(PaymentStatus)
   @IsOptional()
@@ -31,24 +31,16 @@ export class CreatePaymentDetailDto {
   @IsOptional()
   paymentMethod?: PaymentMethod;
 
-  @IsString()
-  @IsOptional()
-  transactionId?: string;
 
-  @IsString()
-  @IsOptional()
-  remarks?: string;
+
 
   @IsDateString()
   @IsNotEmpty()
   paymentDate: string;
 
-  @IsString()
-  @IsOptional()
-  receiptNumber?: string;
 
-  // who collected the amount (user id of collector)
-  @IsNumber()
-  @IsOptional()
-  collectedByUserId?: number;
+
+  @IsString()
+  @IsNotEmpty()
+  collectedBy: string;
 }

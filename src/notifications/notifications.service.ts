@@ -36,7 +36,7 @@ export class NotificationsService {
     });
 
     const totalPaid = payments.reduce(
-      (sum, p) => sum + Number(p.amount),
+      (sum, p) => sum + Number(p.paidAmount),
       0,
     );
     const balance = festival.amountPerFamily - totalPaid;
@@ -83,7 +83,12 @@ Thank you for your contribution!
       byUser.get(p.userId)!.push(p);
     }
 
-    const summaries = [];
+    const summaries: Array<{
+      phoneNumber: string;
+      message: string;
+      festivalId: number;
+      userId: number;
+    }> = [];
     for (const [userId, userPayments] of byUser.entries()) {
       const summary = await this.generateFestivalSummary(festivalId, userId);
       if (summary) {

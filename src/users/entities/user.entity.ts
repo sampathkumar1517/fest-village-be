@@ -9,13 +9,7 @@ import {
 } from 'typeorm';
 import { PaymentDetail } from '../../payment-detail/entities/payment-detail.entity';
 
-export enum UserRole {
-  ADMIN = 'admin',
-  ORGANIZER = 'organizer',
-  USER = 'user',
-}
-
-@Entity()
+@Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
@@ -41,12 +35,6 @@ export class User {
   @Column()
   password: string;
 
-  @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.USER,
-  })
-  role: UserRole;
 
   @Column({ default: true })
   isActive: boolean;
