@@ -5,30 +5,33 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 
-@Entity()
+@Entity('feedback')
 export class Feedback {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true })
-  festivalId: number;
-
-  @Column()
-  fromName: string; // who is giving feedback
-
-  @Column({ nullable: true })
-  fromPhone: string;
-
-  @Column({ nullable: true })
-  fromRole: string; // e.g. organizer, incharge, family
-
   @Column({ type: 'int', nullable: true })
-  rating: number; // 1-5 rating for the system / app
+  festivalId: number | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  fromName: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  fromPhone: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  fromRole: string | null;
+
+  @Column({ type: 'int' })
+  rating: number;
 
   @Column({ type: 'text', nullable: true })
-  comments: string;
+  comments: string | null;
+
+  /** Alias used by reference-style API (comment) */
+  @Column({ type: 'text', nullable: true })
+  comment: string | null;
 
   @CreateDateColumn()
   createdAt: Date;
 }
-

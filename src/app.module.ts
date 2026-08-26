@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { FestivalModule } from './festival/festival.module';
 import { UsersModule } from './users/users.module';
 import { PaymentDetailModule } from './payment-detail/payment-detail.module';
@@ -13,36 +14,49 @@ import { ExpenseCategory } from './expense/entities/expense-category.entity';
 import { ExpenseModule } from './expense/expense.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { Feedback } from './feedback/entities/feedback.entity';
 import { ChatModule } from './chat/chat.module';
 import { ChatMessage } from './chat/entities/chat-message.entity';
 import { EventsModule } from './events/events.module';
 import { Event } from './events/entities/event.entity';
 import { AuthModule } from './auth/auth.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { CollectionsModule } from './collections/collections.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5433,
-      username: 'postgres',
-      password: 'sampath',
-      database: 'postgres',
-      entities: [
-        Festival,
-        User,
-        PaymentDetail,
-        Expense,
-        ExpenseCategory,
-        ChatMessage,
-        Event,
-      ],
-      synchronize: true,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres' as const,
+        host: config.get<string>('DB_HOST', 'localhost'),
+        port: parseInt(config.get<string>('DB_PORT', '5433'), 10),
+        username: config.get<string>('DB_USER', 'postgres'),
+        password: config.get<string>('DB_PASSWORD', 'postgres'),
+        database: config.get<string>('DB_NAME', 'postgres'),
+        entities: [
+          Festival,
+          User,
+          PaymentDetail,
+          Expense,
+          ExpenseCategory,
+          Feedback,
+          ChatMessage,
+          Event,
+        ],
+        synchronize: config.get<string>('DB_SYNC', 'false') === 'true',
+      }),
     }),
     FestivalModule,
     UsersModule,
     PaymentDetailModule,
+    CollectionsModule,
     ExpenseModule,
     AnalyticsModule,
     FeedbackModule,
@@ -50,10 +64,9 @@ import { NotificationsModule } from './notifications/notifications.module';
     EventsModule,
     AuthModule,
     NotificationsModule,
+    DashboardModule,
   ],
-
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
-

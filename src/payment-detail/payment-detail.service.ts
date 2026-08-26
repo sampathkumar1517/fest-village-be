@@ -27,40 +27,51 @@ export class PaymentDetailService {
   ) {}
 
   async AddPayment(createPaymentDetailDto: CreatePaymentDetailDto) {
-    // Validate user exists
-    const user = await this.userRepository.findOne({
-      where: { id: createPaymentDetailDto.userId },
-    });
-
-    if (!user) {
-      throw new NotFoundException(
-        `User with ID ${createPaymentDetailDto.userId} not found`,
+    // Validate and normalize amount to avoid DB overflow on numeric(10,2)
+    const rawAmount = Number(createPaymentDetailDto.paidAmount);
+    if (Number.isNaN(rawAmount) || rawAmount < 0) {
+      throw new BadRequestException('paidAmount must be a non-negative number');
+    }
+    if (rawAmount >= 100_000_000) {
+      throw new BadRequestException(
+        'paidAmount exceeds maximum allowed 99,999,999.99',
       );
+    }
+    const normalizedAmount = Math.round(rawAmount * 100) / 100;
+
+    if (createPaymentDetailDto.userId) {
+      const user = await this.userRepository.findOne({
+        where: { id: createPaymentDetailDto.userId },
+      });
+      if (!user) {
+        throw new NotFoundException(
+          `User with ID ${createPaymentDetailDto.userId} not found`,
+        );
+      }
     }
 
     // Validate festival exists
     const festival = await this.festivalRepository.findOne({
       where: { id: createPaymentDetailDto.festivalId },
     });
-
     if (!festival) {
       throw new NotFoundException(
         `Festival with ID ${createPaymentDetailDto.festivalId} not found`,
       );
     }
 
-
-
-    // If collectedByUserId is provided, validate collector exist
-
     const paymentDetail = this.paymentDetailRepository.create({
-      userId: createPaymentDetailDto.userId,
+      userId: createPaymentDetailDto.userId ?? null,
       festivalId: createPaymentDetailDto.festivalId,
-      paidAmount: createPaymentDetailDto.paidAmount,
+      paidAmount: normalizedAmount,
+      totalAmount: Number(festival.amountPerFamily) || null,
       paymentDate: new Date(createPaymentDetailDto.paymentDate),
       paymentStatus:
-        createPaymentDetailDto.paymentStatus || PaymentStatus.PENDING,
-      paymentMethod: createPaymentDetailDto.paymentMethod || PaymentMethod.CASH,
+        createPaymentDetailDto.paymentStatus || PaymentStatus.COMPLETED,
+      paymentMethod:
+        createPaymentDetailDto.paymentMethod || PaymentMethod.CASH,
+      CollectedBy: createPaymentDetailDto.collectedBy ?? null,
+      collectorName: createPaymentDetailDto.collectedBy ?? null,
     });
 
     await this.paymentDetailRepository.save(paymentDetail);
@@ -72,10 +83,11 @@ export class PaymentDetailService {
     };
   }
 
-  async findAll(festivalId : number) {
+  async findAll(festivalId: number) {
     return this.paymentDetailRepository.find({
       where: { festivalId },
       relations: ['user', 'festival'],
+      order: { paymentDate: 'DESC' },
     });
   }
 
@@ -96,6 +108,7 @@ export class PaymentDetailService {
     return this.paymentDetailRepository.find({
       where: { userId },
       relations: ['festival'],
+      order: { paymentDate: 'DESC' },
     });
   }
 
@@ -103,18 +116,17 @@ export class PaymentDetailService {
     return this.paymentDetailRepository.find({
       where: { festivalId },
       relations: ['user'],
+      order: { paymentDate: 'DESC' },
     });
   }
 
   async update(id: number, updatePaymentDetailDto: UpdatePaymentDetailDto) {
     const paymentDetail = await this.findOne(id);
 
-    // If user is being updated, validate it exists
     if (updatePaymentDetailDto.userId) {
       const user = await this.userRepository.findOne({
         where: { id: updatePaymentDetailDto.userId },
       });
-
       if (!user) {
         throw new NotFoundException(
           `User with ID ${updatePaymentDetailDto.userId} not found`,
@@ -122,25 +134,13 @@ export class PaymentDetailService {
       }
     }
 
-    // If festival is being updated, validate it exists
     if (updatePaymentDetailDto.festivalId) {
       const festival = await this.festivalRepository.findOne({
         where: { id: updatePaymentDetailDto.festivalId },
       });
-
       if (!festival) {
         throw new NotFoundException(
           `Festival with ID ${updatePaymentDetailDto.festivalId} not found`,
-        );
-      }
-
-      // Validate amount if festival is changed
-      if (
-        updatePaymentDetailDto.paidAmount &&
-        updatePaymentDetailDto.paidAmount !== paymentDetail.paidAmount
-      ) {
-        throw new BadRequestException(
-          `Payment amount must match festival amount per family: ${paymentDetail.paidAmount}`,
         );
       }
     }
@@ -165,32 +165,87 @@ export class PaymentDetailService {
     };
   }
 
+  /**
+   * Get payment statistics for a festival.
+   * Each query uses its own QueryBuilder to avoid mutation bugs.
+   */
   async getPaymentStatistics(festivalId?: number) {
-    const queryBuilder =
-      this.paymentDetailRepository.createQueryBuilder('paymentDetail');
+    const base = () => {
+      const qb =
+        this.paymentDetailRepository.createQueryBuilder('payment');
+      if (festivalId) {
+        qb.where('payment.festivalId = :festivalId', { festivalId });
+      }
+      return qb;
+    };
 
-    if (festivalId) {
-      queryBuilder.where('paymentDetail.festivalId = :festivalId', {
-        festivalId,
-      });
-    }
+    const totalPayments = await base().getCount();
 
-    const totalPayments = await queryBuilder.getCount();
-    const completedPayments = await queryBuilder
-      .andWhere('paymentDetail.paymentStatus = :status', {
-        status: 'completed',
-      })
+    const completedPayments = await base()
+      .andWhere('payment.paymentStatus = :status', { status: 'completed' })
       .getCount();
 
-    const totalAmount = await queryBuilder
-      .select('SUM(paymentDetail.amount)', 'total')
+    const totalAmountRaw = await base()
+      .select('SUM(payment.paidAmount)', 'total')
+      .getRawOne();
+
+    const completedAmountRaw = await base()
+      .select('SUM(payment.paidAmount)', 'total')
+      .andWhere('payment.paymentStatus = :status', { status: 'completed' })
       .getRawOne();
 
     return {
       totalPayments,
       completedPayments,
       pendingPayments: totalPayments - completedPayments,
-      totalAmount: parseFloat(totalAmount?.total || '0'),
+      totalAmount: parseFloat(totalAmountRaw?.total || '0'),
+      completedAmount: parseFloat(completedAmountRaw?.total || '0'),
     };
   }
+
+  /**
+   * GET /payment-detail/festival/:festivalId/total
+   * Returns the total collected amount (all payment statuses) for a festival.
+   */
+  async getTotalCollectionByFestival(festivalId: number) {
+    const festival = await this.festivalRepository.findOne({
+      where: { id: festivalId },
+    });
+    if (!festival) {
+      throw new NotFoundException(
+        `Festival with ID ${festivalId} not found`,
+      );
+    }
+
+    const totalRaw = await this.paymentDetailRepository
+      .createQueryBuilder('payment')
+      .select('SUM(payment.paidAmount)', 'total')
+      .where('payment.festivalId = :festivalId', { festivalId })
+      .getRawOne();
+
+    const completedRaw = await this.paymentDetailRepository
+      .createQueryBuilder('payment')
+      .select('SUM(payment.paidAmount)', 'total')
+      .where('payment.festivalId = :festivalId', { festivalId })
+      .andWhere('payment.paymentStatus = :status', { status: 'completed' })
+      .getRawOne();
+
+    const totalFamiliesRaw = await this.paymentDetailRepository
+      .createQueryBuilder('payment')
+      .select('COUNT(DISTINCT payment.userId)', 'count')
+      .where('payment.festivalId = :festivalId', { festivalId })
+      .getRawOne();
+
+    return {
+      festivalId,
+      festivalName: festival.festivalName,
+      amountPerFamily: festival.amountPerFamily,
+      totalCollected: parseFloat(totalRaw?.total || '0'),
+      completedCollection: parseFloat(completedRaw?.total || '0'),
+      totalFamiliesPaid: parseInt(totalFamiliesRaw?.count || '0'),
+    };
+  }
+
+
+
 }

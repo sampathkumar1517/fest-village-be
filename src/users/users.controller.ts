@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -23,17 +22,17 @@ export class UsersController {
 
   @Get()
   GetAllUsers() {
-          return this.usersService.GetAllUsers();
-  }
-
-  @Get(':id')
-  GetUserById(@Param('id') id: string) {
-    return this.usersService.GetUserById(+id);
+    return this.usersService.GetAllUsers();
   }
 
   @Get('phone-number/:phoneNumber')
   GetUserByPhoneNumber(@Param('phoneNumber') phoneNumber: string) {
     return this.usersService.GetUserByPhoneNumber(phoneNumber);
+  }
+
+  @Get(':id')
+  GetUserById(@Param('id') id: string) {
+    return this.usersService.GetUserById(+id);
   }
 
   @Patch(':id')
@@ -43,6 +42,6 @@ export class UsersController {
 
   @Delete(':id')
   DeleteUser(@Param('id') id: string) {
-      return this.usersService.DeleteUser(+id);
+    return this.usersService.DeleteUser(+id);
   }
 }

@@ -41,7 +41,7 @@ export class AnalyticsService {
 
     const expensesRaw = await this.expenseRepo
       .createQueryBuilder('expense')
-      .select('SUM(expense.paidAmount)', 'total')
+      .select('SUM(expense.amount)', 'total')
       .where('expense.festivalId = :festivalId', { festivalId })
       .getRawOne();
 
@@ -70,7 +70,6 @@ export class AnalyticsService {
 
   // Per-family view for a festival: paid, balance
   async getFamilyCollectionView(festivalId: number) {
-    // Each user == one family
     const payments = await this.paymentRepo.find({
       where: { festivalId },
       relations: ['user'],
@@ -83,27 +82,30 @@ export class AnalyticsService {
     const perFamilyAmount = festival?.amountPerFamily || 0;
 
     const byFamily = new Map<
-      number,
-      {
-        familyName: string;
-        phoneNumber: string;
-        totalPaid: number;
-      }
+      string,
+      { familyName: string; phoneNumber: string; totalPaid: number; userId: number | null }
     >();
 
     for (const p of payments) {
-      const key = p.userId;
+      const key = p.userId != null ? `u-${p.userId}` : `f-${p.familyName || p.id}`;
       const existing = byFamily.get(key) || {
-        familyName: `${p.user.firstName} ${p.user.lastName}`,
-        phoneNumber: p.user.phoneNumber,
+        familyName:
+          p.familyName ||
+          (p.user
+            ? `${p.user.firstName} ${p.user.lastName || ''}`.trim()
+            : p.userId
+              ? `User ${p.userId}`
+              : 'Unknown'),
+        phoneNumber: p.mobileNumber || p.user?.phoneNumber || '',
         totalPaid: 0,
+        userId: p.userId,
       };
       existing.totalPaid += Number(p.paidAmount);
       byFamily.set(key, existing);
     }
 
-    return Array.from(byFamily.entries()).map(([userId, info]) => ({
-      userId,
+    return Array.from(byFamily.values()).map((info) => ({
+      userId: info.userId,
       familyName: info.familyName,
       phoneNumber: info.phoneNumber,
       paidAmount: info.totalPaid,
@@ -121,7 +123,7 @@ export class AnalyticsService {
       return null;
     }
 
-    // Total collected
+    // Total collected (completed payments only)
     const collectedRaw = await this.paymentRepo
       .createQueryBuilder('payment')
       .select('SUM(payment.paidAmount)', 'total')
@@ -134,7 +136,7 @@ export class AnalyticsService {
     // Total expenses
     const expensesRaw = await this.expenseRepo
       .createQueryBuilder('expense')
-      .select('SUM(expense.paidAmount)', 'total')
+      .select('SUM(expense.amount)', 'total')
       .where('expense.festivalId = :festivalId', { festivalId })
       .getRawOne();
 
@@ -144,12 +146,14 @@ export class AnalyticsService {
     // Expenses by category
     const expensesByCategory = await this.expenseRepo
       .createQueryBuilder('expense')
-      .leftJoinAndSelect('expense.category', 'category')
-      .select('category.name', 'categoryName')
-      .addSelect('SUM(expense.paidAmount)', 'total')
+      .leftJoin('expense.categoryRelation', 'category')
+      .select(
+        'COALESCE(expense.category, category.name, \'Others\')',
+        'categoryName',
+      )
+      .addSelect('SUM(expense.amount)', 'total')
       .where('expense.festivalId = :festivalId', { festivalId })
-      .groupBy('category.id')
-      .addGroupBy('category.name')
+      .groupBy('COALESCE(expense.category, category.name, \'Others\')')
       .getRawMany();
 
     // Payments by method
@@ -217,4 +221,3 @@ export class AnalyticsService {
     };
   }
 }
-

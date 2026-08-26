@@ -77,6 +77,7 @@ Thank you for your contribution!
 
     const byUser = new Map<number, any[]>();
     for (const p of payments) {
+      if (p.userId == null) continue;
       if (!byUser.has(p.userId)) {
         byUser.set(p.userId, []);
       }

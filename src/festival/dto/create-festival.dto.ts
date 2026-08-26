@@ -5,15 +5,18 @@ import {
   IsBoolean,
   IsNotEmpty,
   IsOptional,
+  Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateFestivalDto {
   @IsString()
   @IsNotEmpty()
   festivalName: string;
 
+  @Type(() => Number)
   @IsNumber()
-  @IsNotEmpty()
+  @Min(1)
   amountPerFamily: number;
 
   @IsDateString()
@@ -29,10 +32,10 @@ export class CreateFestivalDto {
   isActive?: boolean;
 
   @IsString()
-  @IsNotEmpty()
-  organizerName: string;
+  @IsOptional()
+  organizerName?: string;
 
   @IsString()
-  @IsNotEmpty()
-  InchargeName: string;
+  @IsOptional()
+  InchargeName?: string;
 }

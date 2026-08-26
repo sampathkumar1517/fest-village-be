@@ -5,32 +5,52 @@ import {
   IsOptional,
   IsString,
   Min,
+  IsIn,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export const EXPENSE_CATEGORY_NAMES = [
+  'Food',
+  'Flower',
+  'Festival Items',
+  'Petrol',
+  'Dress',
+  'Decoration',
+  'Retail Shop',
+  'Others',
+] as const;
 
 export class CreateExpenseDto {
+  @Type(() => Number)
   @IsNumber()
   @IsNotEmpty()
   festivalId: number;
 
-  @IsNumber()
-  @IsNotEmpty()
-  categoryId: number;
+  @IsString()
+  @IsOptional()
+  @IsIn([...EXPENSE_CATEGORY_NAMES])
+  category?: string;
 
+  @Type(() => Number)
   @IsNumber()
-  @IsNotEmpty()
-  @Min(0)
+  @IsOptional()
+  categoryId?: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
   amount: number;
 
   @IsDateString()
-  @IsNotEmpty()
-  expenseDate: string;
+  @IsOptional()
+  expenseDate?: string;
 
   @IsString()
-  @IsOptional()
-  description?: string;
+  @IsNotEmpty()
+  description: string;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   recordedByUserId?: number;
 }
-

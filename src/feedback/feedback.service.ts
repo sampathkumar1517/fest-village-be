@@ -1,8 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Feedback } from './entities/feedback.entity';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
+
+function mapFeedback(fb: Feedback) {
+  return {
+    id: fb.id,
+    festivalId: fb.festivalId,
+    rating: Number(fb.rating),
+    comment: fb.comment || fb.comments || '',
+    comments: fb.comments || fb.comment || '',
+    fromName: fb.fromName,
+    createdAt: fb.createdAt,
+  };
+}
 
 @Injectable()
 export class FeedbackService {
@@ -12,20 +24,47 @@ export class FeedbackService {
   ) {}
 
   async create(createFeedbackDto: CreateFeedbackDto) {
-    const feedback = this.feedbackRepository.create(createFeedbackDto);
+    const commentText =
+      createFeedbackDto.comment?.trim() ||
+      createFeedbackDto.comments?.trim() ||
+      '';
+    const feedback = this.feedbackRepository.create({
+      festivalId: createFeedbackDto.festivalId ?? null,
+      fromName: createFeedbackDto.fromName ?? 'Anonymous',
+      fromPhone: createFeedbackDto.fromPhone ?? null,
+      fromRole: createFeedbackDto.fromRole ?? null,
+      rating: createFeedbackDto.rating,
+      comment: commentText,
+      comments: commentText,
+    });
     await this.feedbackRepository.save(feedback);
     return {
       success: true,
       message: 'Feedback submitted successfully',
-      data: feedback,
+      data: mapFeedback(feedback),
     };
   }
 
-  // For you (developer) to review all feedback
-  findAll() {
-    return this.feedbackRepository.find({
+  async findAll() {
+    const list = await this.feedbackRepository.find({
       order: { createdAt: 'DESC' },
     });
+    return {
+      success: true,
+      message: 'Feedback fetched successfully',
+      data: list.map(mapFeedback),
+    };
+  }
+
+  async remove(id: number) {
+    const feedback = await this.feedbackRepository.findOne({ where: { id } });
+    if (!feedback) {
+      throw new NotFoundException(`Feedback with ID ${id} not found`);
+    }
+    await this.feedbackRepository.delete(id);
+    return {
+      success: true,
+      message: 'Feedback deleted successfully',
+    };
   }
 }
-

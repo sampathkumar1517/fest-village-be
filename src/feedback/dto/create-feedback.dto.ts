@@ -7,15 +7,17 @@ import {
   Min,
   IsNumber,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateFeedbackDto {
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   festivalId?: number;
 
   @IsString()
-  @IsNotEmpty()
-  fromName: string;
+  @IsOptional()
+  fromName?: string;
 
   @IsString()
   @IsOptional()
@@ -25,14 +27,17 @@ export class CreateFeedbackDto {
   @IsOptional()
   fromRole?: string;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(5)
-  @IsOptional()
-  rating?: number;
+  rating: number;
 
   @IsString()
   @IsOptional()
   comments?: string;
-}
 
+  @IsString()
+  @IsNotEmpty()
+  comment: string;
+}

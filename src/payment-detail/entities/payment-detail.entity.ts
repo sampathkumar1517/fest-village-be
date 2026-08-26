@@ -7,6 +7,7 @@ import {
   DeleteDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Festival } from '../../festival/entities/festival.entity';
@@ -20,23 +21,25 @@ export enum PaymentStatus {
 
 export enum PaymentMethod {
   CASH = 'cash',
+  ONLINE = 'online',
+  CHEQUE = 'cheque',
   UPI = 'upi',
   BANK_TRANSFER = 'bank_transfer',
-  CHEQUE = 'cheque',
 }
 
-@Entity()
+@Entity('payment_detail')
 export class PaymentDetail {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.paymentDetails)
+  @ManyToOne(() => User, (user) => user.paymentDetails, { nullable: true })
   @JoinColumn({ name: 'userId' })
-  user: User;
+  user: User | null;
 
-  @Column()
-  userId: number;
+  @Column({ type: 'int', nullable: true })
+  userId: number | null;
 
+  @Index()
   @ManyToOne(() => Festival)
   @JoinColumn({ name: 'festivalId' })
   festival: Festival;
@@ -44,18 +47,29 @@ export class PaymentDetail {
   @Column()
   festivalId: number;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  familyName: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  mobileNumber: string | null;
+
   @Column('decimal', { precision: 10, scale: 2 })
   paidAmount: number;
 
-  // Who collected the amount (collector / incharge)
+  /** Per-family expected amount copied from festival at insert time */
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  totalAmount: number | null;
 
-  @Column({ nullable: true })
-  CollectedBy: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  CollectedBy: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  collectorName: string | null;
 
   @Column({
     type: 'enum',
     enum: PaymentStatus,
-    default: PaymentStatus.PENDING,
+    default: PaymentStatus.COMPLETED,
   })
   paymentStatus: PaymentStatus;
 
@@ -66,11 +80,12 @@ export class PaymentDetail {
   })
   paymentMethod: PaymentMethod;
 
+  /** Display label matching reference: Cash | Online | Cheque */
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  paymentType: string | null;
 
-
-  @Column()
-  paymentDate: Date;
-
+  @Column({ type: 'date', nullable: true })
+  paymentDate: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;

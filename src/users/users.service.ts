@@ -3,7 +3,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
+import { User, UserRole } from './entities/user.entity';
+
+export interface CreateUserForAuthPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+  address: string;
+  houseNumber: string;
+  role?: UserRole;
+}
 
 @Injectable()
 export class UsersService {
@@ -12,8 +23,10 @@ export class UsersService {
     private userRepository: Repository<User>,
   ) {}
 
+  /**
+   * Create a family member (no password – used by admin via /users/create-user).
+   */
   async CreateUser(createUserDto: CreateUserDto) {
-    // Check if user with email already exists
     const existingUser = await this.userRepository.findOne({
       where: { phoneNumber: createUserDto.phoneNumber },
     });
@@ -22,27 +35,60 @@ export class UsersService {
       throw new ConflictException('User with this phone number already exists');
     }
 
+    // Check email uniqueness as email has a unique constraint on the table
+    const existingByEmail = await this.userRepository.findOne({
+      where: { email: createUserDto.email },
+    });
+    if (existingByEmail) {
+      throw new ConflictException('User with this email already exists');
+    }
+
     const nameParts = createUserDto.firstName.trim().split(/\s+/);
-    const derivedLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'NA';
+    const derivedLastName =
+      nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'NA';
 
     const user = this.userRepository.create({
       ...createUserDto,
-      // Keep required entity fields non-null even when DTO keeps them optional.
       lastName: derivedLastName,
       address: createUserDto.address ?? 'NA',
       houseNumber: createUserDto.houseNumber ?? 'NA',
       password: 'NA',
+      role: UserRole.MEMBER,
     });
 
     await this.userRepository.save(user);
 
-    // Remove password from response
-    const { password, ...result } = user;
     return {
       success: true,
       message: 'User created successfully',
-      
     };
+  }
+
+  /**
+   * Create a user with a pre-hashed password (used by /auth/register).
+   * Returns the saved User entity so the caller can build the JWT payload.
+   */
+  async CreateUserForAuth(payload: CreateUserForAuthPayload): Promise<User> {
+    const existing = await this.userRepository.findOne({
+      where: { email: payload.email },
+    });
+    if (existing) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    const user = this.userRepository.create({
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      email: payload.email,
+      phoneNumber: payload.phoneNumber,
+      password: payload.password,
+      address: payload.address,
+      houseNumber: payload.houseNumber,
+      role: payload.role ?? UserRole.MEMBER,
+      isActive: true,
+    });
+
+    return this.userRepository.save(user);
   }
 
   async GetAllUsers() {
@@ -75,13 +121,10 @@ export class UsersService {
   async UpdateUser(id: number, updateUserDto: UpdateUserDto) {
     const user = await this.GetUserById(id);
 
-    // If password is being updated, hash it
-    // if (updateUserDto.password) {
-    //   updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
-    // }
-
-    // Check if email is being updated and if it already exists
-    if (updateUserDto.phoneNumber && updateUserDto.phoneNumber !== user.phoneNumber) {
+    if (
+      updateUserDto.phoneNumber &&
+      updateUserDto.phoneNumber !== user.phoneNumber
+    ) {
       const existingUser = await this.userRepository.findOne({
         where: { phoneNumber: updateUserDto.phoneNumber },
       });
