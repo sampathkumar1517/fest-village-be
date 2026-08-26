@@ -144,6 +144,14 @@ export class ExpenseService implements OnModuleInit {
     return mapExpense(expense);
   }
 
+  async findEntity(id: number) {
+    const expense = await this.expenseRepository.findOne({ where: { id } });
+    if (!expense) {
+      throw new NotFoundException(`Expense with ID ${id} not found`);
+    }
+    return expense;
+  }
+
   async update(id: number, updateExpenseDto: UpdateExpenseDto) {
     await this.findOne(id);
     const updateData: any = { ...updateExpenseDto };

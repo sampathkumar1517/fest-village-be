@@ -6,6 +6,7 @@ import { Festival } from './entities/festival.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaymentDetail } from '../payment-detail/entities/payment-detail.entity';
 import { Expense } from '../expense/entities/expense.entity';
+import { FestivalAccessService } from './festival-access.service';
 
 function mapFestival(festival: Festival) {
   return {
@@ -23,6 +24,8 @@ function mapFestival(festival: Festival) {
     organizers: festival.organizerName,
     InchargeName: festival.InchargeName,
     incharge: festival.InchargeName,
+    organizerId: festival.organizerId ?? null,
+    ownerUserId: festival.ownerUserId ?? null,
     createdAt: festival.festivalCreatedAt,
   };
 }
@@ -36,9 +39,13 @@ export class FestivalService {
     private paymentRepository: Repository<PaymentDetail>,
     @InjectRepository(Expense)
     private expenseRepository: Repository<Expense>,
+    private readonly festivalAccess: FestivalAccessService,
   ) {}
 
-  async AddFestival(createFestivalDto: CreateFestivalDto) {
+  async AddFestival(
+    createFestivalDto: CreateFestivalDto,
+    organizerId: number,
+  ) {
     const festival = this.festivalRepository.create({
       festivalName: createFestivalDto.festivalName,
       amountPerFamily: createFestivalDto.amountPerFamily,
@@ -47,6 +54,8 @@ export class FestivalService {
       isActive: createFestivalDto.isActive ?? true,
       organizerName: createFestivalDto.organizerName ?? '',
       InchargeName: createFestivalDto.InchargeName ?? '',
+      organizerId,
+      ownerUserId: null,
     });
     await this.festivalRepository.save(festival);
     return {
@@ -86,7 +95,12 @@ export class FestivalService {
     };
   }
 
-  async UpdateFestival(id: number, updateFestivalDto: UpdateFestivalDto) {
+  async UpdateFestival(
+    id: number,
+    updateFestivalDto: UpdateFestivalDto,
+    user: { id: number; role?: string },
+  ) {
+    await this.festivalAccess.assertCanManageFestival(user, id);
     const festival = await this.festivalRepository.findOne({ where: { id } });
     if (!festival) {
       throw new NotFoundException(`Festival with ID ${id} not found`);
@@ -100,6 +114,8 @@ export class FestivalService {
     if (updateFestivalDto.festivalEndDate) {
       updateData.festivalEndDate = new Date(updateFestivalDto.festivalEndDate);
     }
+    delete (updateData as any).ownerUserId;
+    delete (updateData as any).organizerId;
     await this.festivalRepository.update(id, updateData);
     const updated = await this.festivalRepository.findOne({ where: { id } });
     return {
@@ -109,11 +125,9 @@ export class FestivalService {
     };
   }
 
-  async DeleteFestival(id: number) {
-    const festival = await this.festivalRepository.findOne({ where: { id } });
-    if (!festival) {
-      throw new NotFoundException(`Festival with ID ${id} not found`);
-    }
+  async DeleteFestival(id: number, user: { id: number; role?: string }) {
+    // Only the owning organizer may delete a festival
+    await this.festivalAccess.assertOwnsFestival(user, id);
     await this.festivalRepository.softDelete(id);
     return {
       success: true,

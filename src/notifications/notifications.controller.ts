@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Param } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+import { AdminOnly } from '../auth/decorators/admin-only.decorator';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -16,6 +17,7 @@ export class NotificationsController {
   }
 
   @Post('festival/:festivalId/user/:userId/send')
+  @AdminOnly()
   sendSummary(@Param('festivalId') festivalId: string, @Param('userId') userId: string) {
     return this.notificationsService.sendSummary(+festivalId, +userId);
   }

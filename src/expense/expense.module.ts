@@ -6,12 +6,15 @@ import { ExpenseService } from './expense.service';
 import { ExpenseController } from './expense.controller';
 import { Festival } from '../festival/entities/festival.entity';
 import { User } from '../users/entities/user.entity';
+import { FestivalModule } from '../festival/festival.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Expense, ExpenseCategory, Festival, User])],
+  imports: [
+    TypeOrmModule.forFeature([Expense, ExpenseCategory, Festival, User]),
+    FestivalModule,
+  ],
   providers: [ExpenseService],
   controllers: [ExpenseController],
   exports: [ExpenseService],
 })
 export class ExpenseModule {}
-

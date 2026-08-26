@@ -56,11 +56,16 @@ export class FeedbackService {
     };
   }
 
-  async remove(id: number) {
+  async findEntity(id: number) {
     const feedback = await this.feedbackRepository.findOne({ where: { id } });
     if (!feedback) {
       throw new NotFoundException(`Feedback with ID ${id} not found`);
     }
+    return feedback;
+  }
+
+  async remove(id: number) {
+    await this.findEntity(id);
     await this.feedbackRepository.delete(id);
     return {
       success: true,

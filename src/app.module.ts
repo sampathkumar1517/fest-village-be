@@ -23,6 +23,9 @@ import { AuthModule } from './auth/auth.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CollectionsModule } from './collections/collections.module';
+import { FestivalAdmin } from './festival/entities/festival-admin.entity';
+import { Organizer } from './organizers/entities/organizer.entity';
+import { OrganizersModule } from './organizers/organizers.module';
 
 @Module({
   imports: [
@@ -41,7 +44,9 @@ import { CollectionsModule } from './collections/collections.module';
         password: config.get<string>('DB_PASSWORD', 'postgres'),
         database: config.get<string>('DB_NAME', 'postgres'),
         entities: [
+          Organizer,
           Festival,
+          FestivalAdmin,
           User,
           PaymentDetail,
           Expense,
@@ -55,6 +60,7 @@ import { CollectionsModule } from './collections/collections.module';
     }),
     FestivalModule,
     UsersModule,
+    OrganizersModule,
     PaymentDetailModule,
     CollectionsModule,
     ExpenseModule,

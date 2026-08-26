@@ -6,8 +6,10 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { FestivalAccessService } from '../festival/festival-access.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { UserRole } from '../users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -15,10 +17,10 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private festivalAccess: FestivalAccessService,
   ) {}
 
   async register(registerDto: RegisterDto) {
-    // Check phone uniqueness
     const existingByPhone = await this.usersService.GetUserByPhoneNumber(
       registerDto.phoneNumber,
     );
@@ -26,7 +28,6 @@ export class AuthService {
       throw new ConflictException('User with this phone number already exists');
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
     const nameParts = registerDto.firstName.trim().split(/\s+/);
@@ -41,7 +42,7 @@ export class AuthService {
       password: hashedPassword,
       address: registerDto.address ?? 'NA',
       houseNumber: registerDto.houseNumber ?? 'NA',
-      role: registerDto.role,
+      role: UserRole.MEMBER,
     });
 
     return {
@@ -88,6 +89,8 @@ export class AuthService {
       role: user.role,
     };
 
+    const access = await this.festivalAccess.getAccessSummary(user);
+
     return {
       success: true,
       access_token: this.jwtService.sign(payload),
@@ -97,6 +100,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        festivalIds: access.festivalIds,
       },
     };
   }

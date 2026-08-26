@@ -124,11 +124,16 @@ export class CollectionsService {
     };
   }
 
-  async remove(id: number) {
+  async findOne(id: number) {
     const payment = await this.paymentRepository.findOne({ where: { id } });
     if (!payment) {
       throw new NotFoundException(`Collection with ID ${id} not found`);
     }
+    return payment;
+  }
+
+  async remove(id: number) {
+    const payment = await this.findOne(id);
     await this.paymentRepository.softDelete(id);
     return {
       success: true,

@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '../../users/entities/user.entity';
 import { ROLES_KEY } from '../decorators/roles.decorator';
@@ -18,6 +23,19 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
-    return requiredRoles.some((role) => user?.role === role);
+    if (!user) {
+      throw new ForbiddenException('Authentication required');
+    }
+
+    const allowed = requiredRoles.some((role) => user.role === role);
+    if (!allowed) {
+      throw new ForbiddenException(
+        requiredRoles.includes(UserRole.ORGANIZER) &&
+          requiredRoles.length === 1
+          ? 'Only organizers can perform this action'
+          : 'You do not have permission for this action',
+      );
+    }
+    return true;
   }
 }

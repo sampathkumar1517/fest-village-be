@@ -6,10 +6,10 @@ import {
   IsOptional,
 } from 'class-validator';
 
-export class RegisterDto {
+export class RegisterOrganizerDto {
   @IsString()
   @IsNotEmpty()
-  firstName: string;
+  name: string;
 
   @IsEmail()
   @IsNotEmpty()
@@ -26,9 +26,5 @@ export class RegisterDto {
 
   @IsString()
   @IsOptional()
-  address?: string;
-
-  @IsString()
-  @IsOptional()
-  houseNumber?: string;
+  organizationName?: string;
 }

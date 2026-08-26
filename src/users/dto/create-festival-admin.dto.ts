@@ -3,10 +3,16 @@ import {
   IsNotEmpty,
   IsEmail,
   MinLength,
+  IsInt,
   IsOptional,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class RegisterDto {
+export class CreateFestivalAdminDto {
+  @Type(() => Number)
+  @IsInt()
+  festivalId: number;
+
   @IsString()
   @IsNotEmpty()
   firstName: string;
