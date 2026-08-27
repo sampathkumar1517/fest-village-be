@@ -1,3 +1,7 @@
+// WebSocket gateway disabled for SnapDeploy free tier (no WS on free plan).
+// Uncomment this entire block to restore real-time chat.
+
+/*
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -88,3 +92,6 @@ export class ChatGateway
     }
   }
 }
+*/
+
+export {};
