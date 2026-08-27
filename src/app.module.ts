@@ -36,27 +36,44 @@ import { OrganizersModule } from './organizers/organizers.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres' as const,
-        host: config.get<string>('DB_HOST', 'localhost'),
-        port: parseInt(config.get<string>('DB_PORT', '5433'), 10),
-        username: config.get<string>('DB_USER', 'postgres'),
-        password: config.get<string>('DB_PASSWORD', 'postgres'),
-        database: config.get<string>('DB_NAME', 'postgres'),
-        entities: [
-          Organizer,
-          Festival,
-          FestivalAdmin,
-          User,
-          PaymentDetail,
-          Expense,
-          ExpenseCategory,
-          Feedback,
-          ChatMessage,
-          Event,
-        ],
-        synchronize: config.get<string>('DB_SYNC', 'false') === 'true',
-      }),
+      useFactory: (config: ConfigService) => {
+        const databaseUrl = config.get<string>('DATABASE_URL');
+        const sslEnabled =
+          config.get<string>('DB_SSL', 'false') === 'true' ||
+          Boolean(databaseUrl?.includes('supabase'));
+
+        const common = {
+          type: 'postgres' as const,
+          entities: [
+            Organizer,
+            Festival,
+            FestivalAdmin,
+            User,
+            PaymentDetail,
+            Expense,
+            ExpenseCategory,
+            Feedback,
+            ChatMessage,
+            Event,
+          ],
+          // Creates/updates tables automatically from entities on startup
+          synchronize: config.get<string>('DB_SYNC', 'false') === 'true',
+          ssl: sslEnabled ? { rejectUnauthorized: false } : false,
+        };
+
+        if (databaseUrl) {
+          return { ...common, url: databaseUrl };
+        }
+
+        return {
+          ...common,
+          host: config.get<string>('DB_HOST', 'localhost'),
+          port: parseInt(config.get<string>('DB_PORT', '5433'), 10),
+          username: config.get<string>('DB_USER', 'postgres'),
+          password: config.get<string>('DB_PASSWORD', 'postgres'),
+          database: config.get<string>('DB_NAME', 'postgres'),
+        };
+      },
     }),
     FestivalModule,
     UsersModule,

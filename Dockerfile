@@ -1,0 +1,25 @@
+# Build
+FROM node:20-slim AS builder
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY nest-cli.json tsconfig*.json ./
+COPY src ./src
+
+RUN npm run build && npm prune --omit=dev
+
+# Runtime
+FROM node:20-slim AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./
+
+EXPOSE 3000
+
+CMD ["node", "dist/main.js"]
