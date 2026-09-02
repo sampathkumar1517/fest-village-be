@@ -43,12 +43,6 @@
     "rxjs": "^7.8.2",
     "typeorm": "^0.3.28"
   },
-  "_websocketDependencies": {
-    "_comment": "Moved out of dependencies so SnapDeploy free tier does not detect WebSockets. Move back into dependencies to restore chat gateway.",
-    "@nestjs/platform-socket.io": "^11.1.15",
-    "@nestjs/websockets": "^11.1.15",
-    "socket.io": "^4.8.3"
-  },
   "devDependencies": {
     "@nestjs/cli": "^11.0.16",
     "@types/bcrypt": "^6.0.0",
