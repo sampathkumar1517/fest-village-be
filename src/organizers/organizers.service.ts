@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -31,6 +32,13 @@ export class OrganizersService {
   }
 
   async register(dto: RegisterOrganizerDto) {
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.ALLOW_PUBLIC_REGISTRATION !== 'true'
+    ) {
+      throw new ForbiddenException('Public registration is disabled');
+    }
+
     const byPhone = await this.organizerRepo.findOne({
       where: { phoneNumber: dto.phoneNumber },
     });

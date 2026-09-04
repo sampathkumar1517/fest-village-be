@@ -24,9 +24,13 @@ import { Festival } from '../festival/entities/festival.entity';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret:
-          config.get<string>('JWT_SECRET') ||
-          'your-secret-key-change-in-production',
+        secret: (() => {
+          const secret = config.get<string>('JWT_SECRET');
+          if (!secret) {
+            throw new Error('JWT_SECRET is required');
+          }
+          return secret;
+        })(),
         signOptions: { expiresIn: '7d' },
       }),
     }),

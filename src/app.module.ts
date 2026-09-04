@@ -57,7 +57,9 @@ import { OrganizersModule } from './organizers/organizers.module';
             Event,
           ],
           // Creates/updates tables automatically from entities on startup
-          synchronize: config.get<string>('DB_SYNC', 'false') === 'true',
+          synchronize:
+            config.get<string>('DB_SYNC', 'false') === 'true' &&
+            config.get<string>('NODE_ENV') !== 'production',
           ssl: sslEnabled ? { rejectUnauthorized: false } : false,
         };
 

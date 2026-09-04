@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -21,6 +22,13 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.ALLOW_PUBLIC_REGISTRATION !== 'true'
+    ) {
+      throw new ForbiddenException('Public registration is disabled');
+    }
+
     const existingByPhone = await this.usersService.GetUserByPhoneNumber(
       registerDto.phoneNumber,
     );

@@ -6,6 +6,20 @@ import { CreateChatMessageDto } from './dto/create-chat-message.dto';
 import { Festival } from '../festival/entities/festival.entity';
 import { User } from '../users/entities/user.entity';
 
+function sanitizeUser(user: any) {
+  if (user && typeof user === 'object' && 'password' in user) {
+    delete user.password;
+  }
+  return user;
+}
+
+function sanitizeChatMessage(message: any) {
+  if (message?.user) {
+    sanitizeUser(message.user);
+  }
+  return message;
+}
+
 @Injectable()
 export class ChatService {
   constructor(
@@ -48,19 +62,23 @@ export class ChatService {
     const saved = await this.chatMessageRepository.save(chatMessage);
 
     // Load relations for response
-    return this.chatMessageRepository.findOne({
+    const loaded = await this.chatMessageRepository.findOne({
       where: { id: saved.id },
       relations: ['user', 'festival'],
     });
+
+    return sanitizeChatMessage(loaded);
   }
 
   async findAllByFestival(festivalId: number, limit: number = 100) {
-    return this.chatMessageRepository.find({
+    const messages = await this.chatMessageRepository.find({
       where: { festivalId },
       relations: ['user', 'festival'],
       order: { createdAt: 'DESC' },
       take: limit,
     });
+
+    return messages.map(sanitizeChatMessage);
   }
 
   async findOne(id: number) {
@@ -73,7 +91,7 @@ export class ChatService {
       throw new NotFoundException(`Chat message with ID ${id} not found`);
     }
 
-    return message;
+    return sanitizeChatMessage(message);
   }
 
   async remove(id: number) {

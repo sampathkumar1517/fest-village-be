@@ -15,6 +15,21 @@ import {
 import { User } from '../users/entities/user.entity';
 import { Festival } from '../festival/entities/festival.entity';
 
+function sanitizeUser(user: any) {
+  if (user && typeof user === 'object' && 'password' in user) {
+    // Ensure password hash is never serialized in API responses
+    delete user.password;
+  }
+  return user;
+}
+
+function sanitizePaymentDetail(paymentDetail: any) {
+  if (paymentDetail?.user) {
+    sanitizeUser(paymentDetail.user);
+  }
+  return paymentDetail;
+}
+
 @Injectable()
 export class PaymentDetailService {
   constructor(
@@ -84,11 +99,13 @@ export class PaymentDetailService {
   }
 
   async findAll(festivalId: number) {
-    return this.paymentDetailRepository.find({
+    const payments = await this.paymentDetailRepository.find({
       where: { festivalId },
       relations: ['user', 'festival'],
       order: { paymentDate: 'DESC' },
     });
+
+    return payments.map(sanitizePaymentDetail);
   }
 
   async findOne(id: number) {
@@ -101,23 +118,27 @@ export class PaymentDetailService {
       throw new NotFoundException(`Payment detail with ID ${id} not found`);
     }
 
-    return paymentDetail;
+    return sanitizePaymentDetail(paymentDetail);
   }
 
   async findByUserId(userId: number) {
-    return this.paymentDetailRepository.find({
+    const payments = await this.paymentDetailRepository.find({
       where: { userId },
       relations: ['festival'],
       order: { paymentDate: 'DESC' },
     });
+
+    return payments.map(sanitizePaymentDetail);
   }
 
   async findByFestivalId(festivalId: number) {
-    return this.paymentDetailRepository.find({
+    const payments = await this.paymentDetailRepository.find({
       where: { festivalId },
       relations: ['user'],
       order: { paymentDate: 'DESC' },
     });
+
+    return payments.map(sanitizePaymentDetail);
   }
 
   async update(id: number, updatePaymentDetailDto: UpdatePaymentDetailDto) {

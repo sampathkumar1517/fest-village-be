@@ -43,7 +43,6 @@ export class AdminSeedService implements OnModuleInit {
     });
 
     if (organizer) {
-      organizer.password = hashed;
       organizer.isActive = true;
       organizer.name = name;
       await this.organizerRepo.save(organizer);

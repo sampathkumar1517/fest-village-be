@@ -33,7 +33,15 @@ export class CollectionsController {
   }
 
   @Get('festival/:festivalId')
-  findByFestival(@Param('festivalId') festivalId: string) {
+  @StaffOnly()
+  async findByFestival(
+    @Param('festivalId') festivalId: string,
+    @Req() req: any,
+  ) {
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      +festivalId,
+    );
     return this.collectionsService.findByFestival(+festivalId);
   }
 

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { PaymentDetail } from '../payment-detail/entities/payment-detail.entity';
 import { Expense } from '../expense/entities/expense.entity';
 import { Festival } from '../festival/entities/festival.entity';
@@ -138,6 +138,80 @@ export class DashboardService {
           collection: null,
           expenses: null,
           balance: 0,
+        },
+      };
+    }
+
+    const summary = await this.getSummary(activeFestival.id);
+
+    return {
+      success: true,
+      data: {
+        totalFestivals,
+        totalMembers,
+        activeFestival: summary.data.festival,
+        collection: summary.data.collection,
+        expenses: summary.data.expenses,
+        balance: summary.data.balance,
+        families: summary.data.families,
+      },
+    };
+  }
+
+  /**
+   * Scoped overview for a user's manageable festivals.
+   * Prevents cross-festival IDOR by selecting the latest active festival
+   * from the festivalIds the user can manage.
+   */
+  async getOverviewForFestivalIds(festivalIds: number[]) {
+    const safeIds = Array.isArray(festivalIds)
+      ? festivalIds.filter((id) => Number.isFinite(id))
+      : [];
+
+    const totalFestivals = safeIds.length;
+    const totalMembers = await this.userRepo.count({
+      where: { isActive: true },
+    });
+
+    if (!safeIds.length) {
+      return {
+        success: true,
+        data: {
+          totalFestivals,
+          totalMembers,
+          activeFestival: null,
+          collection: null,
+          expenses: null,
+          balance: 0,
+          families: {
+            totalMembers: 0,
+            familiesPaid: 0,
+            pendingFamilies: 0,
+          },
+        },
+      };
+    }
+
+    const activeFestival = await this.festivalRepo.findOne({
+      where: { id: In(safeIds), isActive: true },
+      order: { festivalCreatedAt: 'DESC' },
+    });
+
+    if (!activeFestival) {
+      return {
+        success: true,
+        data: {
+          totalFestivals,
+          totalMembers,
+          activeFestival: null,
+          collection: null,
+          expenses: null,
+          balance: 0,
+          families: {
+            totalMembers: 0,
+            familiesPaid: 0,
+            pendingFamilies: 0,
+          },
         },
       };
     }

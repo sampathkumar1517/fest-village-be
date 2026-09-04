@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  BadRequestException,
   Req,
 } from '@nestjs/common';
 import { PaymentDetailService } from './payment-detail.service';
@@ -35,38 +36,91 @@ export class PaymentDetailController {
   }
 
   @Post('get-all-payments')
-  findAll(@Body() body: { festivalId: number }) {
+  @StaffOnly()
+  async findAll(@Body() body: { festivalId: number }, @Req() req: any) {
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      body.festivalId,
+    );
     return this.paymentDetailService.findAll(body.festivalId);
   }
 
   @Get('festival/:festivalId/total')
-  getTotalCollection(@Param('festivalId') festivalId: string) {
+  @StaffOnly()
+  async getTotalCollection(
+    @Param('festivalId') festivalId: string,
+    @Req() req: any,
+  ) {
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      +festivalId,
+    );
     return this.paymentDetailService.getTotalCollectionByFestival(+festivalId);
   }
 
   @Get('festival/:festivalId')
-  findByFestivalIdGet(@Param('festivalId') festivalId: string) {
+  @StaffOnly()
+  async findByFestivalIdGet(
+    @Param('festivalId') festivalId: string,
+    @Req() req: any,
+  ) {
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      +festivalId,
+    );
     return this.paymentDetailService.findByFestivalId(+festivalId);
   }
 
   @Post('get-payment-statistics')
-  getStatistics(@Body() body: { festivalId?: number }) {
+  @StaffOnly()
+  async getStatistics(
+    @Body() body: { festivalId?: number },
+    @Req() req: any,
+  ) {
+    if (!body.festivalId) {
+      throw new BadRequestException('festivalId is required');
+    }
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      body.festivalId,
+    );
     return this.paymentDetailService.getPaymentStatistics(body.festivalId);
   }
 
   @Post('get-payments-by-user')
-  findByUserId(@Body() body: { userId: number }) {
-    return this.paymentDetailService.findByUserId(body.userId);
+  @StaffOnly()
+  async findByUserId(@Body() body: { userId: number }, @Req() req: any) {
+    const manageableFestivalIds =
+      await this.festivalAccess.getManageableFestivalIds(req.user);
+    const result = await this.paymentDetailService.findByUserId(body.userId);
+    const filterIds = new Set(manageableFestivalIds.map(Number));
+    return (result || []).filter((p) => filterIds.has(Number(p.festivalId)));
   }
 
   @Post('get-payments-by-festival')
-  findByFestivalId(@Body() body: { festivalId: number }) {
+  @StaffOnly()
+  async findByFestivalId(
+    @Body() body: { festivalId: number },
+    @Req() req: any,
+  ) {
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      body.festivalId,
+    );
     return this.paymentDetailService.findByFestivalId(body.festivalId);
   }
 
   @Post('get-payment-by-id')
-  findOne(@Body() body: { id: number }) {
-    return this.paymentDetailService.findOne(body.id);
+  @StaffOnly()
+  async findOne(@Body() body: { id: number }, @Req() req: any) {
+    const payment = await this.paymentDetailService.findOne(body.id);
+    if (payment?.festivalId != null) {
+      await this.festivalAccess.assertCanManageFestival(
+        req.user,
+        payment.festivalId,
+      );
+    }
+    return payment;
   }
 
   @Patch('update-payment')

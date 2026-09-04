@@ -43,17 +43,39 @@ export class ExpenseController {
   }
 
   @Get('festival/:festivalId/total')
-  getTotalByFestival(@Param('festivalId') festivalId: string) {
+  @StaffOnly()
+  async getTotalByFestival(
+    @Param('festivalId') festivalId: string,
+    @Req() req: any,
+  ) {
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      +festivalId,
+    );
     return this.expenseService.getTotalByFestival(+festivalId);
   }
 
   @Get('festival/:festivalId')
-  findAllByFestival(@Param('festivalId') festivalId: string) {
+  @StaffOnly()
+  async findAllByFestival(
+    @Param('festivalId') festivalId: string,
+    @Req() req: any,
+  ) {
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      +festivalId,
+    );
     return this.expenseService.findAllByFestival(+festivalId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  @StaffOnly()
+  async findOne(@Param('id') id: string, @Req() req: any) {
+    const expense = await this.expenseService.findEntity(+id);
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      expense.festivalId,
+    );
     return this.expenseService.findOne(+id);
   }
 

@@ -32,13 +32,29 @@ export class EventsController {
   }
 
   @Get('festival/:festivalId')
-  findAllByFestival(@Param('festivalId') festivalId: string) {
+  @StaffOnly()
+  async findAllByFestival(
+    @Param('festivalId') festivalId: string,
+    @Req() req: any,
+  ) {
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      +festivalId,
+    );
     return this.eventsService.findAllByFestival(+festivalId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.eventsService.findOne(+id);
+  @StaffOnly()
+  async findOne(@Param('id') id: string, @Req() req: any) {
+    const event = await this.eventsService.findOne(+id);
+    if (event?.festivalId != null) {
+      await this.festivalAccess.assertCanManageFestival(
+        req.user,
+        event.festivalId,
+      );
+    }
+    return event;
   }
 
   @Patch(':id')
@@ -71,13 +87,27 @@ export class EventsController {
 
   @Post(':id/register')
   @StaffOnly()
-  registerParticipant(@Param('id') id: string) {
+  async registerParticipant(@Param('id') id: string, @Req() req: any) {
+    const event = await this.eventsService.findOne(+id);
+    if (event?.festivalId != null) {
+      await this.festivalAccess.assertCanManageFestival(
+        req.user,
+        event.festivalId,
+      );
+    }
     return this.eventsService.registerParticipant(+id);
   }
 
   @Post(':id/unregister')
   @StaffOnly()
-  unregisterParticipant(@Param('id') id: string) {
+  async unregisterParticipant(@Param('id') id: string, @Req() req: any) {
+    const event = await this.eventsService.findOne(+id);
+    if (event?.festivalId != null) {
+      await this.festivalAccess.assertCanManageFestival(
+        req.user,
+        event.festivalId,
+      );
+    }
     return this.eventsService.unregisterParticipant(+id);
   }
 }
