@@ -6,10 +6,12 @@ import { PaymentDetail } from '../payment-detail/entities/payment-detail.entity'
 import { Expense } from '../expense/entities/expense.entity';
 import { Festival } from '../festival/entities/festival.entity';
 import { User } from '../users/entities/user.entity';
+import { FestivalModule } from '../festival/festival.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([PaymentDetail, Expense, Festival, User]),
+    FestivalModule,
   ],
   controllers: [DashboardController],
   providers: [DashboardService],

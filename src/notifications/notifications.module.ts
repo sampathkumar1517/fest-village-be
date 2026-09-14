@@ -5,9 +5,13 @@ import { NotificationsController } from './notifications.controller';
 import { User } from '../users/entities/user.entity';
 import { Festival } from '../festival/entities/festival.entity';
 import { PaymentDetail } from '../payment-detail/entities/payment-detail.entity';
+import { FestivalModule } from '../festival/festival.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Festival, PaymentDetail])],
+  imports: [
+    TypeOrmModule.forFeature([User, Festival, PaymentDetail]),
+    FestivalModule,
+  ],
   controllers: [NotificationsController],
   providers: [NotificationsService],
   exports: [NotificationsService],

@@ -7,6 +7,7 @@ import { Expense } from '../expense/entities/expense.entity';
 import { ExpenseCategory } from '../expense/entities/expense-category.entity';
 import { Festival } from '../festival/entities/festival.entity';
 import { Event } from '../events/entities/event.entity';
+import { FestivalModule } from '../festival/festival.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { Event } from '../events/entities/event.entity';
       Festival,
       Event,
     ]),
+    FestivalModule,
   ],
   providers: [AnalyticsService],
   controllers: [AnalyticsController],
