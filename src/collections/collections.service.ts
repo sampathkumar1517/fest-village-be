@@ -12,6 +12,7 @@ import {
 } from '../payment-detail/entities/payment-detail.entity';
 import { Festival } from '../festival/entities/festival.entity';
 import { CreateCollectionDto } from './dto/create-collection.dto';
+import { UpdateCollectionDto } from './dto/update-collection.dto';
 
 function mapPaymentTypeToMethod(paymentType: string): PaymentMethod {
   const normalized = paymentType.toLowerCase();
@@ -79,11 +80,13 @@ export class CollectionsService {
     const paymentType = dto.paymentType;
     const collectorName = dto.collectorName?.trim() || '';
 
+    const mobileNumber = dto.mobileNumber?.trim() || null;
+
     const payment = this.paymentRepository.create({
       festivalId: dto.festivalId,
       userId: null,
       familyName: dto.familyName.trim(),
-      mobileNumber: dto.mobileNumber.trim(),
+      mobileNumber,
       paidAmount,
       totalAmount,
       paymentType,
@@ -99,6 +102,55 @@ export class CollectionsService {
     return {
       success: true,
       message: 'Payment recorded successfully',
+      data: toCollectionResponse(payment),
+    };
+  }
+
+  async update(id: number, dto: UpdateCollectionDto) {
+    const payment = await this.paymentRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
+    if (!payment) {
+      throw new NotFoundException(`Collection with ID ${id} not found`);
+    }
+
+    if (dto.familyName !== undefined) {
+      const name = dto.familyName.trim();
+      if (!name) {
+        throw new BadRequestException('familyName cannot be empty');
+      }
+      payment.familyName = name;
+    }
+
+    if (dto.mobileNumber !== undefined) {
+      payment.mobileNumber = dto.mobileNumber.trim() || null;
+    }
+
+    if (dto.paidAmount !== undefined) {
+      const paidAmount = Math.round(Number(dto.paidAmount) * 100) / 100;
+      if (Number.isNaN(paidAmount) || paidAmount <= 0) {
+        throw new BadRequestException('paidAmount must be greater than 0');
+      }
+      payment.paidAmount = paidAmount;
+    }
+
+    if (dto.paymentType !== undefined) {
+      payment.paymentType = dto.paymentType;
+      payment.paymentMethod = mapPaymentTypeToMethod(dto.paymentType);
+    }
+
+    if (dto.collectorName !== undefined) {
+      const collectorName = dto.collectorName.trim();
+      payment.collectorName = collectorName;
+      payment.CollectedBy = collectorName || null;
+    }
+
+    await this.paymentRepository.save(payment);
+
+    return {
+      success: true,
+      message: 'Payment updated successfully',
       data: toCollectionResponse(payment),
     };
   }

@@ -10,17 +10,13 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class CreateCollectionDto {
-  @Type(() => Number)
-  @IsNumber()
-  @IsNotEmpty()
-  festivalId: number;
-
+export class UpdateCollectionDto {
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  familyName: string;
+  familyName?: string;
 
-  /** Optional; if provided must be exactly 10 digits */
+  /** Optional; empty clears the number; if provided must be 10 digits */
   @IsOptional()
   @IsString()
   @ValidateIf((_, v) => v != null && String(v).trim() !== '')
@@ -29,16 +25,18 @@ export class CreateCollectionDto {
   })
   mobileNumber?: string;
 
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
-  paidAmount: number;
+  paidAmount?: number;
 
+  @IsOptional()
   @IsString()
   @IsIn(['Cash', 'Online', 'Cheque'])
-  paymentType: string;
+  paymentType?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   collectorName?: string;
 }

@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Delete,
   Body,
   Param,
@@ -11,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CollectionsService } from './collections.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
+import { UpdateCollectionDto } from './dto/update-collection.dto';
 import { StaffOnly } from '../auth/decorators/admin-only.decorator';
 import { FestivalAccessService } from '../festival/festival-access.service';
 
@@ -43,6 +45,21 @@ export class CollectionsController {
       +festivalId,
     );
     return this.collectionsService.findByFestival(+festivalId);
+  }
+
+  @Patch(':id')
+  @StaffOnly()
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateCollectionDto,
+    @Req() req: any,
+  ) {
+    const payment = await this.collectionsService.findOne(+id);
+    await this.festivalAccess.assertCanManageFestival(
+      req.user,
+      payment.festivalId,
+    );
+    return this.collectionsService.update(+id, dto);
   }
 
   @Delete(':id')
