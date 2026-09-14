@@ -22,20 +22,10 @@ export class FeedbackController {
     private readonly festivalAccess: FestivalAccessService,
   ) {}
 
+  /** Public — anyone can share feedback */
   @Post()
-  @StaffOnly()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createFeedbackDto: CreateFeedbackDto, @Req() req: any) {
-    if (createFeedbackDto.festivalId) {
-      await this.festivalAccess.assertCanManageFestival(
-        req.user,
-        createFeedbackDto.festivalId,
-      );
-    } else if (!this.festivalAccess.isOrganizer(req.user)) {
-      throw new ForbiddenException(
-        'Festival admins must submit feedback for their assigned festival',
-      );
-    }
+  create(@Body() createFeedbackDto: CreateFeedbackDto) {
     return this.feedbackService.create(createFeedbackDto);
   }
 

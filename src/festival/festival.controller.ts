@@ -70,9 +70,7 @@ export class FestivalController {
   }
 
   @Get(':id/summary')
-  @StaffOnly()
-  async getSummary(@Param('id') id: string, @Req() req: any) {
-    await this.festivalAccess.assertCanManageFestival(req.user, +id);
+  getSummary(@Param('id') id: string) {
     return this.festivalService.GetFestivalSummary(+id);
   }
 

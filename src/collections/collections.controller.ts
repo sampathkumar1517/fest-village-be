@@ -34,16 +34,9 @@ export class CollectionsController {
     return this.collectionsService.create(dto);
   }
 
+  /** Public read — anyone can view collection records for a festival */
   @Get('festival/:festivalId')
-  @StaffOnly()
-  async findByFestival(
-    @Param('festivalId') festivalId: string,
-    @Req() req: any,
-  ) {
-    await this.festivalAccess.assertCanManageFestival(
-      req.user,
-      +festivalId,
-    );
+  async findByFestival(@Param('festivalId') festivalId: string) {
     return this.collectionsService.findByFestival(+festivalId);
   }
 
